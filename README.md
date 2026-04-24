@@ -1,6 +1,6 @@
 # FreeGamesDiscord
 
-A lightweight Discord bot that checks the Steam Grab Free Games RSS feed every 10 minutes and posts new free game entries to a Discord channel using rich embeds.
+A lightweight Discord bot that checks the Steam Grab Free Games RSS feed every 10 minutes and posts new free game entries to a Discord channel using rich embeds. It now also sends a startup status embed and opens a lightweight Discord gateway connection to keep the bot presence alive.
 
 ## What This Project Does
 
@@ -10,6 +10,8 @@ A lightweight Discord bot that checks the Steam Grab Free Games RSS feed every 1
 	- Title and link
 	- Summary/description
 	- Thumbnail (when available)
+- Sends a startup embed when the bot launches
+- Maintains a Discord gateway websocket connection for presence/heartbeat handling
 - Runs continuously with a scheduler (`APScheduler`)
 
 ## Tech Stack
@@ -18,6 +20,7 @@ A lightweight Discord bot that checks the Steam Grab Free Games RSS feed every 1
 - `feedparser` for RSS parsing
 - `requests` for Discord API calls
 - `apscheduler` for periodic jobs
+- `websocket-client` for the Discord gateway connection
 - Docker + Docker Compose support
 
 ## Project Structure
@@ -73,6 +76,8 @@ Minimum required permissions:
 - Send Messages
 - Embed Links
 
+If you want the startup embed and regular RSS notifications to work, the bot must also be allowed to speak in the target channel.
+
 ## Run Option A: Local Python
 
 ### 1. Create and activate a virtual environment
@@ -100,6 +105,7 @@ You should see:
 
 - `Bot started. Checking every 10 minutes...`
 - RSS check logs every 10 minutes
+- A startup embed posted to the configured Discord channel
 
 ## Run Option B: Docker
 
@@ -150,6 +156,11 @@ Hardcoded runtime behavior in `app.py`:
 - Check interval: 10 minutes
 - State file: `last_items.json`
 
+Additional runtime behavior:
+
+- Sends a startup embed named `Bot Online` when the process starts
+- Opens a Discord gateway websocket connection in a background thread
+
 ## How Duplicate Prevention Works
 
 The bot stores seen entry IDs/links in `last_items.json`. On each RSS check:
@@ -178,12 +189,12 @@ This prevents reposting the same giveaway repeatedly.
 
 ### Docker Compose note about state persistence
 
-The current `docker-compose.yml` mounts `./data` to `/app`. This can hide files copied into the image if `./data` does not contain the app files.
+The current `docker-compose.yml` mounts `./data` to `/app/data`, while the app stores its state in `last_items.json` at the application root. That means the feed state is not persisted across container rebuilds unless you update the mount or change the state path.
 
-If this happens, either:
+If you want to persist the state file across restarts, you can either:
 
-- Run with Docker (Option B), or
-- Adjust the volume mapping so only the state file (or a state directory) is persisted.
+- Change the app to store `last_items.json` under `/app/data`, or
+- Mount a specific file or directory that matches the current state file location.
 
 ## Operations
 
