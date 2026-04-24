@@ -2,8 +2,13 @@ import os
 import json
 import feedparser
 import requests
+import threading
+import websocket
+import json
+import time
 from datetime import datetime, timezone
 from apscheduler.schedulers.blocking import BlockingScheduler
+
 
 RSS_URL = "https://steamcommunity.com/groups/GrabFreeGames/rss/"
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -100,8 +105,61 @@ def check_rss():
     save_state(state)
     print("RSS check complete.")
 
+def start_presence_thread():
+    def run():
+        ws = websocket.WebSocket()
+        ws.connect("wss://gateway.discord.gg/?v=10&encoding=json")
+
+        hello = json.loads(ws.recv())
+        heartbeat_interval = hello["d"]["heartbeat_interval"] / 1000
+
+        identify = {
+            "op": 2,
+            "d": {
+                "token": DISCORD_TOKEN,
+                "intents": 0,
+                "properties": {
+                    "os": "linux",
+                    "browser": "my_library",
+                    "device": "my_library"
+                }
+            }
+        }
+
+        ws.send(json.dumps(identify))
+
+        while True:
+            ws.send(json.dumps({"op": 1, "d": None}))
+            time.sleep(heartbeat_interval)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+
+def send_startup_embed():
+    headers = {
+        "Authorization": f"Bot {DISCORD_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    embed = {
+        "title": "🟢 Bot Online",
+        "description": "The Free Games bot has started successfully and is now watching for new items.",
+        "color": 0x00FF00,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    payload = {"embeds": [embed]}
+
+    response = requests.post(DISCORD_API_URL, headers=headers, json=payload)
+    if response.status_code not in (200, 201):
+        print(f"Failed to send startup embed: {response.status_code} - {response.text}")
+
+
+
 
 def main():
+    start_presence_thread()
+    send_startup_embed()
     scheduler = BlockingScheduler()
     scheduler.add_job(check_rss, "interval", minutes=10)
     print("Bot started. Checking every 10 minutes...")
