@@ -16,13 +16,24 @@ DISCORD_API_URL = f"https://discord.com/api/v10/channels/{DISCORD_CHANNEL_ID}/me
 def load_state():
     if not os.path.exists(STATE_FILE):
         return {"seen_ids": []}
-    with open(STATE_FILE, "r") as f:
-        return json.load(f)
+
+    try:
+        with open(STATE_FILE, "r") as f:
+            data = f.read().strip()
+            if not data:
+                return {"seen_ids": []}
+            return json.loads(data)
+    except Exception:
+        # File is corrupt or unreadable → reset it
+        return {"seen_ids": []}
 
 
 def save_state(state):
-    with open(STATE_FILE, "w") as f:
+    tmp = STATE_FILE + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(state, f, indent=2)
+    os.replace(tmp, STATE_FILE)
+
 
 
 def send_embed_to_discord(title, link, description=None, image=None):
