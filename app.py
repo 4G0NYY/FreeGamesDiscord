@@ -6,6 +6,8 @@ import threading
 import websocket
 import json
 import time
+import re
+from html import unescape
 from datetime import datetime, timezone
 from apscheduler.schedulers.blocking import BlockingScheduler
 
@@ -54,24 +56,24 @@ def send_embed_to_discord(title, link, description=None, image=None):
         "Authorization": f"Bot {DISCORD_TOKEN}",
         "Content-Type": "application/json"
     }
-
+    # Clean the description (HTML → Markdown)
+    cleaned_description = html_to_markdown(description) if description else "A new free game has been posted!"
+    
     embed = {
         "title": title,
         "url": link,
-        "description": description or "A new free game has been posted!",
+        "description": cleaned_description,
         "color": 0x00AEEF,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     if image:
         embed["thumbnail"] = {"url": image}
-
     payload = {"embeds": [embed]}
-
     response = requests.post(DISCORD_API_URL, headers=headers, json=payload)
-
     if response.status_code not in (200, 201):
         print(f"Failed to send embed: {response.status_code} - {response.text}")
+
 
 
 def extract_image(entry):
@@ -162,6 +164,26 @@ def send_startup_embed():
     if response.status_code not in (200, 201):
         print(f"Failed to send startup embed: {response.status_code} - {response.text}")
 
+
+def html_to_markdown(raw_html):
+    if not raw_html:
+        return ""
+    text = raw_html
+    # Convert <li> to "- "
+    text = re.sub(r'<li[^>]*>', '- ', text)
+    text = text.replace('</li>', '\n')
+    # Convert <br> to newline
+    text = re.sub(r'<br\s*/?>', '\n', text)
+    # Convert <blockquote> to Markdown quote
+    text = re.sub(r'<blockquote[^>]*>', '> ', text)
+    text = text.replace('</blockquote>', '\n')
+    # Remove all remaining HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Decode HTML entities (&amp;, &quot;, etc.)
+    text = unescape(text)
+    # Clean up whitespace
+    text = re.sub(r'\n\s*\n+', '\n', text).strip()
+    return text
 
 
 
