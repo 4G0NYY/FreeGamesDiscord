@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  rss-discord-bot:
+    build: .
+    container_name: rss-discord-bot
+    restart: unless-stopped
+    environment:
+      DISCORD_TOKEN: "${DISCORD_TOKEN}"
+      DISCORD_CHANNEL_ID: "${DISCORD_CHANNEL_ID}"
+    volumes:
+      - ./data:/app
