@@ -19,17 +19,25 @@ DISCORD_API_URL = f"https://discord.com/api/v10/channels/{DISCORD_CHANNEL_ID}/me
 
 
 def load_state():
+    # If file doesn't exist → create it with default state
     if not os.path.exists(STATE_FILE):
+        save_state({"seen_ids": []})
         return {"seen_ids": []}
 
     try:
         with open(STATE_FILE, "r") as f:
             data = f.read().strip()
+
+            # Empty file → reset it
             if not data:
+                save_state({"seen_ids": []})
                 return {"seen_ids": []}
+
             return json.loads(data)
+
     except Exception:
-        # File is corrupt or unreadable → reset it
+        # Corrupted JSON → reset it
+        save_state({"seen_ids": []})
         return {"seen_ids": []}
 
 
