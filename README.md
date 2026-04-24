@@ -202,7 +202,3 @@ docker stop freegames-discord-bot
 ```bash
 docker compose down
 ```
-
-## License
-
-Add your preferred license (for example, MIT) in a `LICENSE` file.
