@@ -9,4 +9,4 @@ services:
       DISCORD_TOKEN: "${DISCORD_TOKEN}"
       DISCORD_CHANNEL_ID: "${DISCORD_CHANNEL_ID}"
     volumes:
-      - ./data:/app
+      - ./data:/app/data
